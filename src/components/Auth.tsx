@@ -76,19 +76,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
     setErrorMessage(null);
     setSuccessMessage(null);
 
-    if (!supabase) {
-      // Direct simulation state since Supabase credentials are not connected
-      setSuccessMessage("OAuth Sandbox Successful! Redirecting you...");
-      setTimeout(() => {
-        onAuthSuccess({
-          user: {
-            email: "google-sandbox-user@gmail.com",
-            user_metadata: { full_name: "Google Sandbox User" }
-          }
-        });
-      }, 1500);
-      return;
-    }
+    
 
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -159,7 +147,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
       setTimeout(() => {
         setLoading(false);
         if (isSignUp) {
-          setSuccessMessage("Account registered successfully! Welcome to OptiResume Pro.");
+          setSuccessMessage("Account registered successfully! Welcome to OptiResume AI.");
           setTimeout(() => {
             setIsSignUp(false);
           }, 1800);

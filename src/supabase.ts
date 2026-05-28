@@ -1,15 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
 import { ResumeData, AnalysisResult, AIHistoryItem } from "./types";
 
-// Get Supabase credentials if defined (either from Vite environment or explicit)
-const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL || "";
-const supabaseAnonKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || "";
+const supabaseUrl = "https://kekgjepusxamxndonvzh.supabase.co";
+const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtla2dqZXB1c3hhbXhuZG9udnpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MjM1MzUsImV4cCI6MjA5NTQ5OTUzNX0.tjntQe4FpMovnFHwyANyeLYcg1XqZ8e62UlIvblQTTA";
 
-const isConfigured = supabaseUrl && supabaseAnonKey && supabaseUrl !== "MY_SUPABASE_URL" && supabaseAnonKey !== "MY_SUPABASE_ANON_KEY";
+export const supabase = createClient(
+  supabaseUrl,
+  supabaseAnonKey
+);
 
-export const supabase = isConfigured 
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
 
 // LocalStorage key for simulating persistence if Supabase backend is not configured yet
 const LOCAL_STORAGE_HISTORY_KEY = "ats_resume_builder_history";

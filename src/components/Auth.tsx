@@ -274,12 +274,12 @@ export function Auth({ onAuthSuccess }: AuthProps) {
           {/* Header titles */}
           <div className="space-y-1.5 text-center mb-6">
             <h1 className="text-2xl font-black font-display tracking-tight bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent">
-              {isSignUp ? "Join OptiResume AI" : "Access Your Dashboard"}
+              {isSignUp ? "Create Secure Account" : "Access Candidate Dashboard"}
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 max-w-[280px] mx-auto leading-relaxed">
               {isSignUp 
                 ? "Secure login for resume optimization and ATS analysis." 
-                : "Track past resume analyses and compare resumes with target job requirements."
+                : "Manage previous scans and run alignment scans against corporate job descriptions."
               }
             </p>
           </div>
@@ -446,7 +446,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
               ) : (
                 <ShieldCheck className="w-4 h-4" />
               )}
-              {isSignUp ? "Create Secure Account" : "Sign in"}
+              {isSignUp ? "Create Account" : "Sign in"}
             </button>
           </form>
 

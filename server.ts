@@ -1,8 +1,70 @@
 import express from "express";
 import path from "path";
 import multer from "multer";
-import * as pdf from "pdf-parse";
-const pdfParse = (pdf as any).default || pdf;
+import { PDFParse } from "pdf-parse";
+import { createRequire } from "module";
+
+async function parsePdfBuffer(buffer: Buffer): Promise<string> {
+  // 1. Try using the direct PDFParse class from mehmet-kozan's pdf-parse package (v2+)
+  try {
+    const parser = new PDFParse({ data: new Uint8Array(buffer) });
+    const result = await parser.getText();
+    if (result && typeof result.text === "string") {
+      console.log(`[Parser] Successfully parsed PDF using PDFParse class. Extracted ${result.text.length} characters.`);
+      return result.text;
+    }
+  } catch (err) {
+    console.warn("[Parser] PDFParse class direct instantiation failed:", err);
+  }
+
+  // 2. Try ESM dynamic import fallback
+  try {
+    const dynamicModule = (await import("pdf-parse")) as any;
+    const ParserClass = dynamicModule.PDFParse || dynamicModule.default?.PDFParse || dynamicModule.default;
+    if (typeof ParserClass === "function") {
+      try {
+        const parserInstance = new ParserClass({ data: new Uint8Array(buffer) });
+        const result = await parserInstance.getText();
+        if (result && typeof result.text === "string") {
+          return result.text;
+        }
+      } catch (ctorErr) {
+        // Fallback for older functional pdf-parse versions just in case
+        const result = await ParserClass(buffer);
+        if (result && typeof result.text === "string") {
+          return result.text;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("[Parser] Dynamic import parsing failed:", err);
+  }
+
+  // 3. Try CommonJS createRequire fallback
+  try {
+    const requireCustom = createRequire(import.meta.url);
+    const requiredModule = requireCustom("pdf-parse");
+    const ParserClass = requiredModule.PDFParse || requiredModule.default?.PDFParse || requiredModule;
+    if (typeof ParserClass === "function") {
+      try {
+        const parserInstance = new ParserClass({ data: new Uint8Array(buffer) });
+        const result = await parserInstance.getText();
+        if (result && typeof result.text === "string") {
+          return result.text;
+        }
+      } catch (ctorErr) {
+        const result = await ParserClass(buffer);
+        if (result && typeof result.text === "string") {
+          return result.text;
+        }
+      }
+    }
+  } catch (err) {
+    console.error("[Parser] CommonJS require parsing failed:", err);
+  }
+
+  throw new Error("Unable to resolve a valid PDF parsing function or class on this platform.");
+}
 import mammoth from "mammoth";
 import OpenAI from "openai";
 import { GoogleGenAI, Type } from "@google/genai";
@@ -132,8 +194,7 @@ app.post("/api/parse-resume", upload.single("resume"), async (req, res) => {
     console.log(`[Parser] Processing file: ${file.originalname} (${file.size} bytes)`);
 
     if (extension === ".pdf") {
-      const data = await pdfParse(file.buffer);
-      extractedText = data.text;
+      extractedText = await parsePdfBuffer(file.buffer);
     } else if (extension === ".docx") {
       const result = await mammoth.extractRawText({ buffer: file.buffer });
       extractedText = result.value;

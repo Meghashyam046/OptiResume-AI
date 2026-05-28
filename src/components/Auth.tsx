@@ -446,7 +446,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
               ) : (
                 <ShieldCheck className="w-4 h-4" />
               )}
-              {isSignUp ? "Create Account" : "Sign in"}
+              {isSignUp ? "Create Secure Account" : "Sign in"}
             </button>
           </form>
 

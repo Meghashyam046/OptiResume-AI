@@ -67,7 +67,6 @@ async function parsePdfBuffer(buffer: Buffer): Promise<string> {
 }
 import mammoth from "mammoth";
 import OpenAI from "openai";
-import { GoogleGenAI, Type } from "@google/genai";
 import { createServer as createViteServer } from "vite";
 import fs from "fs";
 
@@ -91,7 +90,6 @@ const upload = multer({
 
 // Lazy client initializations
 let openaiClient: OpenAI | null = null;
-let googleGenAIClient: GoogleGenAI | null = null;
 
 function isValidApiKey(key: string | undefined): boolean {
   if (!key) return false;
@@ -110,9 +108,7 @@ function isValidApiKey(key: string | undefined): boolean {
     superClean === "" ||
     superClean.includes("placeholder") ||
     superClean.includes("myopenaiapi") ||
-    superClean.includes("mygeminiapi") ||
     superClean.includes("youropenaiapi") ||
-    superClean.includes("yourgeminiapi") ||
     superClean.includes("yourapikey") ||
     superClean.includes("yourkey") ||
     superClean.includes("enterkey") ||
@@ -144,74 +140,56 @@ function getOpenAI(): OpenAI | null {
   return openaiClient;
 }
 
-function getGemini(): GoogleGenAI | null {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!isValidApiKey(apiKey)) {
-    return null;
-  }
-  let clean = apiKey!.trim();
-  if ((clean.startsWith('"') && clean.endsWith('"')) || (clean.startsWith("'") && clean.endsWith("'"))) {
-    clean = clean.slice(1, -1).trim();
-  }
-  if (!googleGenAIClient) {
-    googleGenAIClient = new GoogleGenAI({
-      apiKey: clean,
-      httpOptions: {
-        headers: {
-          "User-Agent": "aistudio-build",
-        },
-      },
-    });
-  }
-  return googleGenAIClient;
-}
-
-// Low-level helper to generate text using the available provider
+// Low-level helper to generate text using ONLY OpenAI with gpt-4o-mini
 async function requestAICompletion(prompt: string, systemInstruction?: string, jsonMode: boolean = false): Promise<string> {
   const openai = getOpenAI();
-  if (openai) {
-    try {
-      console.log("[AI Service] Querying OpenAI (ChatGPT)...");
-      const messages: any[] = [];
-      if (systemInstruction) {
-        messages.push({ role: "system", content: systemInstruction });
-      }
-      messages.push({ role: "user", content: prompt });
-
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages,
-        response_format: jsonMode ? { type: "json_object" } : undefined,
-        temperature: 0.3,
-      });
-
-      return completion.choices[0]?.message?.content || "";
-    } catch (err: any) {
-      console.warn("[AI Service] OpenAI query failed, falling back to Gemini...", err.message);
-    }
+  if (!openai) {
+    throw new Error("OpenAI API key not configured");
   }
 
-  // Fallback to Gemini API (automatically configured on the platform)
-  const gemini = getGemini();
-  if (gemini) {
-    try {
-      console.log("[AI Service] Querying Gemini API (gemini-3.5-flash)...");
-      const response = await gemini.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: prompt,
-        config: {
-          systemInstruction: systemInstruction,
-          temperature: 0.2,
-          responseMimeType: jsonMode ? "application/json" : "text/plain",
-        },
-      });
-      return response.text?.trim() || "";
-    } catch (err: any) {
-      console.error("[AI Service] Gemini query failed:", err.message);
-    }
+  console.log("[AI Service] Querying OpenAI (gpt-4o-mini)...");
+  const messages: any[] = [];
+  if (systemInstruction) {
+    messages.push({ role: "system", content: systemInstruction });
   }
+  messages.push({ role: "user", content: prompt });
 
-  throw new Error("No AI providers (OpenAI or Gemini API Keys) are configured on the backend server, or the configured providers failed to execute.");
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages,
+    response_format: jsonMode ? { type: "json_object" } : undefined,
+    temperature: 0.3,
+  });
+
+  return completion.choices[0]?.message?.content || "";
+}
+
+// Fixed JSON parsing safely: cleans markdown tags and extracts JSON bounded by braces
+function cleanAndParseJSON(aiResponse: string): any {
+  if (!aiResponse) {
+    throw new Error("AI returned an empty response.");
+  }
+  
+  // Clean markdown blocks
+  let clean = aiResponse
+    .replace(/```json/gi, "")
+    .replace(/```/g, "")
+    .trim();
+    
+  // Extract JSON object safely if there is extra/accidental conversation around it
+  const firstBrace = clean.indexOf("{");
+  const lastBrace = clean.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    clean = clean.slice(firstBrace, lastBrace + 1);
+  }
+  
+  try {
+    return JSON.parse(clean);
+  } catch (err: any) {
+    console.error("[JSON Parser Error] Raw AI response:", aiResponse);
+    console.error("[JSON Parser Error] Cleaned block:", clean);
+    throw new Error(`Failed to safely parse AI JSON response: ${err.message}`);
+  }
 }
 
 // Sandbox high-fidelity offline helpers
@@ -395,13 +373,11 @@ function fallbackATSEnhancement(resumeData: any, jobDescription: string, analysi
 // Health check and provider status
 app.get("/api/status", (req, res) => {
   const hasOpenAI = !!getOpenAI();
-  const hasGemini = !!getGemini();
-  const isDemoMode = !hasOpenAI && !hasGemini;
   res.json({
     hasOpenAI,
-    hasGemini,
-    isDemoMode,
-    activeProvider: hasOpenAI ? "OpenAI" : (hasGemini ? "Gemini" : "Sandbox Demo Mode"),
+    hasGemini: false,
+    isDemoMode: !hasOpenAI,
+    activeProvider: hasOpenAI ? "OpenAI" : "Sandbox Heuristic AI",
   });
 });
 
@@ -436,8 +412,9 @@ app.post("/api/parse-resume", upload.single("resume"), async (req, res) => {
       return;
     }
 
-    let isDemoMode = !getOpenAI() && !getGemini();
+    const hasOpenAI = !!getOpenAI();
     let resumeData = {};
+    let isDemoMode = !hasOpenAI;
 
     if (isDemoMode) {
       console.log("[Parser API] Running in Demo Sandbox fallback mode");
@@ -506,14 +483,9 @@ app.post("/api/parse-resume", upload.single("resume"), async (req, res) => {
         `;
 
         const aiResponse = await requestAICompletion(prompt, systemInstruction, true);
-        let clean = aiResponse
-  .replace(/```json/gi, "")
-  .replace(/```/g, "")
-  .trim();
-
-resumeData = JSON.parse(clean);
+        resumeData = cleanAndParseJSON(aiResponse);
       } catch (err: any) {
-        console.warn("[Parser API] Primary live AI failed or was not configured. Gracefully falling back to Sandbox parser.", err.message);
+        console.warn("[Parser API Error] LLM parsing execution failed. Gracefully falling back to Sandbox:", err.message);
         isDemoMode = true;
         resumeData = fallbackResumeParse(extractedText);
       }
@@ -546,10 +518,9 @@ app.post("/api/analyze-ats", async (req, res) => {
       return;
     }
 
-    console.log("[ATS Analyst] Analyzing resume against job description...");
-
-    let isDemoMode = !getOpenAI() && !getGemini();
+    const hasOpenAI = !!getOpenAI();
     let analysisResult = {};
+    let isDemoMode = !hasOpenAI;
 
     if (isDemoMode) {
       console.log("[ATS Analyst] Running in Demo Sandbox fallback mode");
@@ -593,9 +564,9 @@ app.post("/api/analyze-ats", async (req, res) => {
         `;
 
         const aiResponse = await requestAICompletion(prompt, systemInstruction, true);
-        analysisResult = JSON.parse(aiResponse);
+        analysisResult = cleanAndParseJSON(aiResponse);
       } catch (err: any) {
-        console.warn("[Analyst API] Primary live AI failed or was not configured. Gracefully falling back to Sandbox analyst.", err.message);
+        console.warn("[ATS Analyst API Error] LLM analysis execution failed. Gracefully falling back to Sandbox:", err.message);
         isDemoMode = true;
         analysisResult = fallbackATSAnalysis(resumeData, jobDescription);
       }
@@ -626,10 +597,9 @@ app.post("/api/enhance-ats", async (req, res) => {
       return;
     }
 
-    console.log("[ATS Enhancer] Rewriting resume components targeted for high ATS rating...");
-
-    let isDemoMode = !getOpenAI() && !getGemini();
+    const hasOpenAI = !!getOpenAI();
     let enhancedResume = {};
+    let isDemoMode = !hasOpenAI;
 
     if (isDemoMode) {
       console.log("[ATS Enhancer] Running in Demo Sandbox fallback mode");
@@ -672,15 +642,10 @@ app.post("/api/enhance-ats", async (req, res) => {
 
         console.log("RAW AI RESPONSE:", aiResponse); // debugging
 
-        const clean = aiResponse
-          .replace(/```json/gi, "")
-          .replace(/```/g, "")
-          .trim();
-
-        const responseObj = JSON.parse(clean);
+        const responseObj = cleanAndParseJSON(aiResponse);
         enhancedResume = responseObj.resumeData || responseObj;
       } catch (err: any) {
-        console.warn("[Enhancer API] Primary live AI failed or was not configured. Gracefully falling back to Sandbox enhancer.", err.message);
+        console.warn("[ATS Enhancer API Error] LLM enhancement execution failed. Gracefully falling back to Sandbox:", err.message);
         isDemoMode = true;
         enhancedResume = fallbackATSEnhancement(resumeData, jobDescription, analysisResult);
       }

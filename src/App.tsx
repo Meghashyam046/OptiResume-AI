@@ -536,7 +536,7 @@ export default function App() {
             <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
             <span>
               <strong>Developer Sandbox:</strong> Running with Sandbox Heuristic AI.
-              Connect your <strong>Gemini API Key</strong> in the <strong>Settings &gt; Secrets</strong> panel to activate live models.
+              Connect your <strong>OpenAI API Key</strong> in the <strong>Settings &gt; Secrets</strong> panel to activate live models.
             </span>
           </div>
         </div>

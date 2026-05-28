@@ -174,6 +174,46 @@ export default function App() {
     }
   }, []);
 
+  // Handle popup window handshake and closing
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.opener) {
+      const handlePopupAuthentication = async () => {
+        if (supabase) {
+          try {
+            const { data: { session: activeSession } } = await supabase.auth.getSession();
+            if (activeSession) {
+              window.opener.postMessage(
+                { type: "OAUTH_AUTH_SUCCESS", session: activeSession },
+                window.location.origin
+              );
+              setTimeout(() => {
+                window.close();
+              }, 1200);
+              return;
+            }
+          } catch (e) {
+            console.error("Popup session extraction error:", e);
+          }
+
+          const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+            if (newSession) {
+              window.opener.postMessage(
+                { type: "OAUTH_AUTH_SUCCESS", session: newSession },
+                window.location.origin
+              );
+              setTimeout(() => {
+                window.close();
+              }, 1200);
+            }
+          });
+          return () => subscription.unsubscribe();
+        }
+      };
+
+      handlePopupAuthentication();
+    }
+  }, []);
+
   useEffect(() => {
     // Load persisted configurations only if authenticated
     if (session) {
@@ -380,6 +420,29 @@ export default function App() {
       loadHistory();
     }
   };
+
+  // Streamlined screen for popup window callback context to handle the parent postMessage and shut down smoothly
+  if (typeof window !== "undefined" && window.opener) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-center select-none">
+        <div className="bg-slate-950/60 p-8 rounded-3xl border border-slate-800/80 max-w-md shadow-2xl flex flex-col items-center">
+          <div className="relative mb-6">
+            <div className="absolute inset-0 bg-blue-500/10 rounded-full blur-xl animate-pulse"></div>
+            <div className="relative bg-gradient-to-tr from-blue-600 to-indigo-600 text-white rounded-2xl p-4 shadow-lg flex items-center justify-center">
+              <svg className="w-8 h-8 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </div>
+          </div>
+          <h2 className="text-xl font-bold font-display text-white mb-2">Google Sign-In Successful!</h2>
+          <p className="text-sm text-slate-400 leading-relaxed font-sans">
+            Transferring your secure session back to OptiResume AI securely. This window will close automatically in a moment.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (authChecking) {
     return (

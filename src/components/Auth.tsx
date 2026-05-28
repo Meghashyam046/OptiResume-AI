@@ -70,22 +70,66 @@ export function Auth({ onAuthSuccess }: AuthProps) {
     });
   }, [password]);
 
+  // Listen for success message from popup (after callback completes)
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      // Validate origin is from AI Studio preview or localhost
+      const origin = event.origin;
+      if (!origin.endsWith('.run.app') && !origin.includes('localhost')) {
+        return;
+      }
+      if (event.data?.type === 'OAUTH_AUTH_SUCCESS') {
+        const session = event.data.session;
+        setSuccessMessage("Sign-in successful! Launching optimizer dashboard...");
+        setTimeout(() => {
+          onAuthSuccess(session);
+        }, 1200);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [onAuthSuccess]);
+
   // Handle OAuth Sign In
   const handleGoogleSignIn = async () => {
     setLoading(true);
     setErrorMessage(null);
     setSuccessMessage(null);
 
-    
-
     try {
+      if (!supabase) {
+        throw new Error("Supabase is not configured.");
+      }
+
+      // Use skipBrowserRedirect: true to fetch the direct provider login URL
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: window.location.origin
+          redirectTo: `${window.location.origin}`,
+          skipBrowserRedirect: true,
         }
       });
       if (error) throw error;
+
+      if (data?.url) {
+        setSuccessMessage("Opening secure Google login...");
+        const width = 600;
+        const height = 750;
+        const left = window.screen.width / 2 - width / 2;
+        const top = window.screen.height / 2 - height / 2;
+
+        const authWindow = window.open(
+          data.url,
+          "oauth_popup",
+          `width=${width},height=${height},left=${left},top=${top},status=no,resizable=yes,scrollbars=yes`
+        );
+
+        if (!authWindow) {
+          throw new Error("Popup blocked! Please allow popups for this site so the Google Sign-In helper can open.");
+        }
+      } else {
+        throw new Error("Google login URL could not be constructed.");
+      }
     } catch (err: any) {
       setErrorMessage(err.message || "Failed to launch Google auth session.");
       setLoading(false);
@@ -354,7 +398,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
             </div>
 
             {/* PASSWORD COMPLEXITY REALTIME METRICS CHECKLIST */}
-            <div className="bg-slate-100/60 dark:bg-slate-950/50 p-3.5 rounded-2xl border border-slate-200/40 dark:border-slate-800/40 space-y-2 text-[11px]">
+            <div className="bg-white dark:bg-slate-950/50 p-3.5 rounded-2xl border border-slate-200/40 dark:border-slate-800/40 space-y-2 text-[11px]">
               <div className="flex items-center justify-between font-bold">
                 <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-display flex items-center gap-1">
                   <LockKeyhole className="w-3 h-3 text-blue-500" />

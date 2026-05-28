@@ -1,0 +1,6 @@
+{
+  "name": "ATS Resume Builder",
+  "description": "An AI-powered ATS Resume Builder and Analyzer that extracts resume text, calculates ATS match scores, lists keywords, rewrites professional summaries, and exports recruiter-ready PDF resumes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

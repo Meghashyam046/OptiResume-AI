@@ -274,11 +274,11 @@ export function Auth({ onAuthSuccess }: AuthProps) {
           {/* Header titles */}
           <div className="space-y-1.5 text-center mb-6">
             <h1 className="text-2xl font-black font-display tracking-tight bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent">
-              {isSignUp ? "Create Secure Account" : "Access Candidate Dashboard"}
+              {isSignUp ? "Join OptiResume AI" : "Access Your Dashboard"}
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 max-w-[280px] mx-auto leading-relaxed">
               {isSignUp 
-                ? "Block fake emails and establish hard credentials to secure resume iterations." 
+                ? "Secure login for resume optimization and ATS analysis." 
                 : "Track past resume analyses and compare resumes with target job requirements."
               }
             </p>

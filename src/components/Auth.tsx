@@ -398,7 +398,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
             </div>
 
             {/* PASSWORD COMPLEXITY REALTIME METRICS CHECKLIST */}
-            <div className="bg-white dark:bg-slate-950/50 p-3.5 rounded-2xl border border-slate-200/40 dark:border-slate-800/40 space-y-2 text-[11px]">
+            <div className="bg-transparent p-3.5 rounded-2xl border border-slate-200/40 dark:border-slate-800/40 space-y-2 text-[11px]">
               <div className="flex items-center justify-between font-bold">
                 <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-display flex items-center gap-1">
                   <LockKeyhole className="w-3 h-3 text-blue-500" />

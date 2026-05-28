@@ -141,6 +141,7 @@ export default function App() {
   // Database Connection Indicator & Histories Log
   const [historyItems, setHistoryItems] = useState<AIHistoryItem[]>([]);
   const [dbConnected, setDbConnected] = useState(false);
+  const [isDemoMode, setIsDemoMode] = useState(false);
 
   useEffect(() => {
     // Check session
@@ -172,6 +173,22 @@ export default function App() {
       });
       return () => subscription.unsubscribe();
     }
+  }, []);
+
+  useEffect(() => {
+    // Check API status & mode on mount
+    const checkApiStatus = async () => {
+      try {
+        const res = await fetch("/api/status");
+        if (res.ok) {
+          const data = await res.json();
+          setIsDemoMode(!!data.isDemoMode);
+        }
+      } catch (err) {
+        console.warn("Error querying API status:", err);
+      }
+    };
+    checkApiStatus();
   }, []);
 
   // Handle popup window handshake and closing
@@ -304,6 +321,9 @@ export default function App() {
       }
 
       setResumeData(data.resumeData);
+      if (data.isDemoMode !== undefined) {
+        setIsDemoMode(!!data.isDemoMode);
+      }
       setWorkspaceStarted(true);
       setActiveWorkspaceTab("edit");
     } catch (err: any) {
@@ -337,6 +357,9 @@ export default function App() {
       }
 
       setAnalysisResult(data);
+      if (data.isDemoMode !== undefined) {
+        setIsDemoMode(!!data.isDemoMode);
+      }
       setActiveWorkspaceTab("ats");
 
       // Save item to database history (Supabase or LocalStorage fallback)
@@ -377,6 +400,9 @@ export default function App() {
       }
 
       setResumeData(data.resumeData);
+      if (data.isDemoMode !== undefined) {
+        setIsDemoMode(!!data.isDemoMode);
+      }
       
       // Update our ATS scores after the integration
       const updatedResponse = await fetch("/api/analyze-ats", {
@@ -503,6 +529,18 @@ export default function App() {
           </button>
         </div>
       </header>
+
+      {isDemoMode && (
+        <div className="bg-amber-50 border-b border-amber-200/60 px-6 py-2 flex items-center justify-between text-amber-800 text-[11px] font-semibold select-none shrink-0 z-30">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+            <span>
+              <strong>Developer Sandbox:</strong> Running with Sandbox Heuristic AI.
+              Connect your <strong>Gemini API Key</strong> in the <strong>Settings &gt; Secrets</strong> panel to activate live models.
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* DASHBOARD OR ACTIVE WORKSPACE CONDITIONAL ROUTE */}
       {!workspaceStarted ? (

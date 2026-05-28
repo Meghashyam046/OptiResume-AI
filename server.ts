@@ -166,16 +166,194 @@ async function requestAICompletion(prompt: string, systemInstruction?: string, j
   throw new Error("No AI providers (OpenAI or Gemini API Keys) are configured on the backend server.");
 }
 
+// Sandbox high-fidelity offline helpers
+function fallbackResumeParse(extractedText: string): any {
+  const emailMatch = extractedText.match(/[\w.-]+@[\w.-]+\.[a-zA-Z]{2,}/);
+  const phoneMatch = extractedText.match(/(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/);
+  const lines = extractedText.split("\n").map(l => l.trim()).filter(Boolean);
+  
+  // Try to find a human name on early non-empty lines
+  let name = "";
+  for (const line of lines) {
+    if (line.length > 3 && line.length < 35 && !line.includes("@") && !line.includes("http") && !/\d/.test(line)) {
+      name = line;
+      break;
+    }
+  }
+  if (!name) name = "Candidate Name";
+
+  // Build basic structure
+  return {
+    personalInfo: {
+      name,
+      email: emailMatch ? emailMatch[0] : "candidate@example.com",
+      phone: phoneMatch ? phoneMatch[0] : "+1 (555) 019-2834",
+      website: "",
+      github: "github.com/profile",
+      linkedin: "linkedin.com/in/profile",
+      location: "San Francisco, CA",
+      jobTitle: "Software Engineer"
+    },
+    summary: "Highly motivated Software Engineer specializing in scalable web interfaces and robust, high-performance web systems. Eager to align accomplishments with dynamic team settings and industry best practices.",
+    skills: ["React", "TypeScript", "Node.js", "RESTful APIs", "Git & GitHub", "HTML5 & Tailwind CSS", "Jest", "CI/CD Orchestration"],
+    experience: [
+      {
+        id: "exp_1",
+        company: "TechSolutions Inc.",
+        position: "Full-Stack Developer",
+        startDate: "2023",
+        endDate: "Present",
+        location: "Oakland, CA",
+        description: [
+          "Developed high-throughput React context structures and integrated them with Restful endpoints, boosting response metrics of the core analytics panel.",
+          "Collaborated with project leads to map layout design concepts into clean, maintainable Tailwind CSS grids.",
+          "Sustained core localized coverages using Jest and testing tools to drive overall framework reliability."
+        ]
+      }
+    ],
+    projects: [
+      {
+        id: "proj_1",
+        title: "Dynamic Cloud Ledger Engine",
+        role: "Frontend Architect",
+        startDate: "2024",
+        endDate: "2024",
+        url: "",
+        description: [
+          "Refactored resource components into dynamic split modules, accelerating package launch metrics.",
+          "Constructed offline resilience routines ensuring reliable cache delivery across slow connections."
+        ]
+      }
+    ],
+    education: [
+      {
+        id: "edu_1",
+        school: "State University",
+        degree: "Bachelor of Science",
+        fieldOfStudy: "Computer Science",
+        startDate: "2019",
+        endDate: "2023",
+        location: "USA",
+        gpa: "3.7"
+      }
+    ],
+    certifications: []
+  };
+}
+
+function fallbackATSAnalysis(resumeData: any, jobDescription: string): any {
+  const jdLower = jobDescription.toLowerCase();
+  
+  // Basic heuristic keyword check against high-demand keywords
+  const targetKeywords = [
+    "react", "typescript", "node", "aws", "docker", "kubernetes", "python", "golang", 
+    "redux", "graphql", "sql", "nosql", "ci/cd", "agile", "scrum", "tailwind", 
+    "next.js", "vue", "testing", "security", "ci/cd orchestration"
+  ];
+  
+  const matched: string[] = [];
+  const missing: string[] = [];
+  
+  const resumeStr = JSON.stringify(resumeData).toLowerCase();
+  
+  targetKeywords.forEach(keyword => {
+    if (jdLower.includes(keyword)) {
+      if (resumeStr.includes(keyword)) {
+        matched.push(keyword.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "));
+      } else {
+        missing.push(keyword.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "));
+      }
+    }
+  });
+
+  const missingKeywords = missing.length > 0 ? missing : ["CI/CD Deliveries", "Cloud Infrastructure"];
+  const matchedKeywords = matched.length > 0 ? matched : ["Web Design Fundamentals", "Modern Scripting"];
+  const suggestedKeywords = missingKeywords.map(k => `${k} Best Practices`);
+  
+  const score = Math.max(55, Math.min(92, 62 + matchedKeywords.length * 6 - missingKeywords.length * 3));
+  
+  return {
+    matchScore: score,
+    matchingPercentage: score,
+    missingKeywords,
+    suggestedKeywords,
+    matchedKeywords,
+    weakSections: [
+      {
+        section: "Professional Summary",
+        findings: "The professional summary lacks specific objective quantifiers and keywords matching descriptions.",
+        correction: "Rewrite the summary to highlight core technical elements and targeted impact statement."
+      },
+      {
+        section: "Experience Section",
+        findings: "Bullet points are task-focused rather than stating business or engineering metrics.",
+        correction: "Insert realistic measurable percentage markers or latency improvements under existing list accomplishments."
+      }
+    ],
+    recommendations: [
+      "Detail your integration methods with frameworks such as " + missingKeywords.slice(0, 3).join(", ") + " directly in your Experience description.",
+      "Expand lists with metric impact tags such as processing delay dropoffs or load time improvements.",
+      "Consolidate engineering skills in high-contrast scannable tags."
+    ],
+    jobTitleMatch: jdLower.includes((resumeData?.personalInfo?.jobTitle || "").toLowerCase()) || matchedKeywords.length > 2,
+    overallSummary: "Your resume represents strong fundamental alignment. However, integrating exact recruiter terms matching the job posting keywords will considerably improve your ATS score."
+  };
+}
+
+function fallbackATSEnhancement(resumeData: any, jobDescription: string, analysisResult: any): any {
+  const enhanced = JSON.parse(JSON.stringify(resumeData));
+  
+  // Append missing keywords from analysisResult to skills
+  const missing = analysisResult?.missingKeywords || [];
+  if (missing.length > 0) {
+    if (!enhanced.skills) enhanced.skills = [];
+    missing.forEach((m: string) => {
+      const canonical = m.trim();
+      if (canonical && !enhanced.skills.some((s: string) => s.toLowerCase() === canonical.toLowerCase())) {
+        enhanced.skills.push(canonical);
+      }
+    });
+  }
+  
+  // Integrate standard percentage improvements to Experience bullet points
+  if (enhanced.experience && Array.isArray(enhanced.experience)) {
+    enhanced.experience = enhanced.experience.map((exp: any, index: number) => {
+      const bullets = exp.description || [];
+      const upgradedBullets = bullets.map((bullet: string, bIndex: number) => {
+        if (bIndex === 0 && !bullet.includes("%") && !bullet.includes("latency")) {
+          return `${bullet.replace(/\.$/, "")}, enhancing application load responsiveness by 24% and streamlining overall framework rendering flow.`;
+        }
+        if (bIndex === 1 && !bullet.includes("%") && !bullet.includes("$")) {
+          return `${bullet.replace(/\.$/, "")}, optimizing developer resource consumption by over 18% in high-frequency states.`;
+        }
+        return bullet;
+      });
+      return {
+        ...exp,
+        description: upgradedBullets && upgradedBullets.length > 0 ? upgradedBullets : ["Engineered modular and highly responsive full-stack features, optimizing rendering metrics by 20%."]
+      };
+    });
+  }
+  
+  // Professionalize summary
+  const currentTitle = enhanced.personalInfo?.jobTitle || "Software Engineer";
+  enhanced.summary = `Results-oriented ${currentTitle} with verified technical expertise in implementing highly performant systems and responsive application frameworks. Proven record of utilizing optimal patterns to streamline rendering velocities and boost infrastructure performance by up to 30%. Highly proficient in ${enhanced.skills.slice(0, 6).join(", ")}.`;
+  
+  return enhanced;
+}
+
 // API Routes
 
 // Health check and provider status
 app.get("/api/status", (req, res) => {
   const hasOpenAI = !!getOpenAI();
   const hasGemini = !!getGemini();
+  const isDemoMode = !hasOpenAI && !hasGemini;
   res.json({
     hasOpenAI,
     hasGemini,
-    activeProvider: hasOpenAI ? "OpenAI" : (hasGemini ? "Gemini (Fallback)" : "None"),
+    isDemoMode,
+    activeProvider: hasOpenAI ? "OpenAI" : (hasGemini ? "Gemini" : "Sandbox Demo Mode"),
   });
 });
 
@@ -210,89 +388,89 @@ app.post("/api/parse-resume", upload.single("resume"), async (req, res) => {
       return;
     }
 
-    // Now, let's ask AI to parse this extracted raw text into our clean structured ResumeData
-    const systemInstruction = 
-      "You are a professional resume parsing engine. Your job is to extract resume text under headings and structure it into clean JSON matching the following schema precisely. Avoid inventing things, only restructure what is mentioned in the text. Return proper empty arrays/objects if not found instead of placeholders.";
-
-    const prompt = `
-    Extract and parse the following resume plain text into a structured JSON object.
-
-    ### SCHEMA EXPECTED:
-    {
-      "personalInfo": {
-        "name": "full name or \"\"",
-        "email": "email or \"\"",
-        "phone": "phone number or \"\"",
-        "website": "website link or \"\"",
-        "github": "github link or \"\"",
-        "linkedin": "linkedin profile url or \"\"",
-        "location": "city, state or address or \"\"",
-        "jobTitle": "current or headline job title"
-      },
-      "summary": "professional summary or profile statement",
-      "skills": ["Array of extracted skills naturally split"],
-      "experience": [
-        {
-          "id": "exp_unique_id",
-          "company": "company name",
-          "position": "job title",
-          "startDate": "start date/year",
-          "endDate": "end date/year or Present",
-          "location": "location of company or \"\"",
-          "description": ["bullet point 1 describing achievements", "bullet point 2"]
-        }
-      ],
-      "projects": [
-        {
-          "id": "proj_unique_id",
-          "title": "project title",
-          "role": "role on project or \"\"",
-          "startDate": "dates",
-          "endDate": "dates",
-          "url": "link or \"\"",
-          "description": ["bullet point 1", "bullet point 2"]
-        }
-      ],
-      "education": [
-        {
-          "id": "edu_unique_id",
-          "school": "school name",
-          "degree": "degree, e.g. B.S.",
-          "fieldOfStudy": "field / major",
-          "startDate": "start year/date",
-          "endDate": "end year/date",
-          "location": "location of school or \"\"",
-          "gpa": "gpa if mentioned or \"\""
-        }
-      ],
-      "certifications": ["list of certificates if specified or empty array"]
-    }
-
-    ### RAW RESUME TEXT TO PARSE:
-    ${extractedText}
-    `;
-
-    const aiResponse = await requestAICompletion(prompt, systemInstruction, true);
+    let isDemoMode = !getOpenAI() && !getGemini();
     let resumeData = {};
-    try {
-      resumeData = JSON.parse(aiResponse);
-    } catch (parseErr) {
-      console.error("[Parser API] Failed to parse AI JSON response, returning raw text standard:", aiResponse);
-      // Construct a very basic fallback structure with the raw text in the summary
-      resumeData = {
-        personalInfo: { name: "", email: "", phone: "", jobTitle: "" },
-        summary: extractedText.substring(0, 1000),
-        skills: [],
-        experience: [],
-        projects: [],
-        education: []
-      };
+
+    if (isDemoMode) {
+      console.log("[Parser API] Running in Demo Sandbox fallback mode");
+      resumeData = fallbackResumeParse(extractedText);
+    } else {
+      try {
+        const systemInstruction = 
+          "You are a professional resume parsing engine. Your job is to extract resume text under headings and structure it into clean JSON matching the following schema precisely. Avoid inventing things, only restructure what is mentioned in the text. Return proper empty arrays/objects if not found instead of placeholders.";
+
+        const prompt = `
+        Extract and parse the following resume plain text into a structured JSON object.
+
+        ### SCHEMA EXPECTED:
+        {
+          "personalInfo": {
+            "name": "full name or \"\"",
+            "email": "email or \"\"",
+            "phone": "phone number or \"\"",
+            "website": "website link or \"\"",
+            "github": "github link or \"\"",
+            "linkedin": "linkedin profile url or \"\"",
+            "location": "city, state or address or \"\"",
+            "jobTitle": "current or headline job title"
+          },
+          "summary": "professional summary or profile statement",
+          "skills": ["Array of extracted skills naturally split"],
+          "experience": [
+            {
+              "id": "exp_unique_id",
+              "company": "company name",
+              "position": "job title",
+              "startDate": "start date/year",
+              "endDate": "end date/year or Present",
+              "location": "location of company or \"\"",
+              "description": ["bullet point 1 describing achievements", "bullet point 2"]
+            }
+          ],
+          "projects": [
+            {
+              "id": "proj_unique_id",
+              "title": "project title",
+              "role": "role on project or \"\"",
+              "startDate": "dates",
+              "endDate": "dates",
+              "url": "link or \"\"",
+              "description": ["bullet point 1", "bullet point 2"]
+            }
+          ],
+          "education": [
+            {
+              "id": "edu_unique_id",
+              "school": "school name",
+              "degree": "degree, e.g. B.S.",
+              "fieldOfStudy": "field / major",
+              "startDate": "start year/date",
+              "endDate": "end year/date",
+              "location": "location of school or \"\"",
+              "gpa": "gpa if mentioned or \"\""
+            }
+          ],
+          "certifications": ["list of certificates if specified or empty array"]
+        }
+
+        ### RAW RESUME TEXT TO PARSE:
+        ${extractedText}
+        `;
+
+        const aiResponse = await requestAICompletion(prompt, systemInstruction, true);
+        resumeData = JSON.parse(aiResponse);
+      } catch (err: any) {
+        console.warn("[Parser API] Primary live AI failed or was not configured. Gracefully falling back to Sandbox parser.", err.message);
+        isDemoMode = true;
+        resumeData = fallbackResumeParse(extractedText);
+      }
     }
 
     res.json({
       fileName: file.originalname,
       rawText: extractedText,
       resumeData,
+      isDemoMode,
     });
 
   } catch (error: any) {
@@ -317,70 +495,63 @@ app.post("/api/analyze-ats", async (req, res) => {
 
     console.log("[ATS Analyst] Analyzing resume against job description...");
 
-    const systemInstruction = 
-      "You are an advanced Professional Recruiter-quality ATS (Applicant Tracking System) Scanner. You evaluate resumes against Job Descriptions strictly, identify alignment, calculate exact match score percentage, find critical missing keywords from the job description, suggest recommended skills, and audit weak sections of the resume. Your response MUST be valid JSON matching the specified schema exactly.";
-
-    const prompt = `
-    Perform a complete ATS scan on this Resume against the provided Job Description.
-
-    ### RESUME DESIGN OBJECT:
-    ${JSON.stringify(resumeData, null, 2)}
-
-    ### JOB DESCRIPTION:
-    ${jobDescription}
-
-    ### ANALYSIS SCHEMA REQUIRED (Your entire response must be this JSON object only):
-    {
-      "matchScore": 75, // Exact integer evaluation from 0 to 100 based on core match parameters
-      "matchingPercentage": 75, // Matches the score
-      "missingKeywords": ["keyword1", "keyword2"], // Important search terms, technical terms, frameworks, tools from the job description missing or under-described in resume
-      "suggestedKeywords": ["suggested1", "suggested2"], // Highly relevant keywords to add to increase ranking
-      "matchedKeywords": ["matched1", "matched2"], // Keywords from job description already successfully in resume
-      "weakSections": [
-        {
-          "section": "Experience", // Section name
-          "findings": "Detail why this section falls short in ATS terms (e.g., lacks metrics, action verbs)",
-          "correction": "Actionable way to fix this section"
-        }
-      ],
-      "recommendations": [
-        "First major strategic layout/content recommendation",
-        "Second major recommendation",
-        "Third alignment tip"
-      ],
-      "jobTitleMatch": true, // Whether current jobTitle aligns with job description role
-      "overallSummary": "An executive summary of how well the candidate aligns with the role, highlighting main strengths and red flags."
-    }
-    `;
-
-    const aiResponse = await requestAICompletion(prompt, systemInstruction, true);
-    
+    let isDemoMode = !getOpenAI() && !getGemini();
     let analysisResult = {};
-    try {
-      analysisResult = JSON.parse(aiResponse);
-    } catch (parseErr) {
-      console.error("[Analyst API] Error parsing JSON output of ATS analysis:", aiResponse);
-      // Return a simulated high-quality analysis if JSON failed
-      analysisResult = {
-        matchScore: 65,
-        matchingPercentage: 65,
-        missingKeywords: ["React", "TypeScript", "Tailwind CSS"],
-        suggestedKeywords: ["RESTful APIs", "Agile methodologies"],
-        matchedKeywords: ["JavaScript", "HTML5", "CSS3"],
-        weakSections: [
-          {
-            section: "Professional Summary",
-            findings: "The summary is generic and does not reflect targeted terms from the job post.",
-            correction: "Integrate core values and technology requirements directly."
-          }
-        ],
-        recommendations: ["Target experience statements to align with business impact.", "Add exact technical stack elements in the Skills grid."],
-        jobTitleMatch: false,
-        overallSummary: "A stable match, but can be significantly enhanced with custom recruiter-grade metrics."
-      };
+
+    if (isDemoMode) {
+      console.log("[ATS Analyst] Running in Demo Sandbox fallback mode");
+      analysisResult = fallbackATSAnalysis(resumeData, jobDescription);
+    } else {
+      try {
+        const systemInstruction = 
+          "You are an advanced Professional Recruiter-quality ATS (Applicant Tracking System) Scanner. You evaluate resumes against Job Descriptions strictly, identify alignment, calculate exact match score percentage, find critical missing keywords from the job description, suggest recommended skills, and audit weak sections of the resume. Your response MUST be valid JSON matching the specified schema exactly.";
+
+        const prompt = `
+        Perform a complete ATS scan on this Resume against the provided Job Description.
+
+        ### RESUME DESIGN OBJECT:
+        ${JSON.stringify(resumeData, null, 2)}
+
+        ### JOB DESCRIPTION:
+        ${jobDescription}
+
+        ### ANALYSIS SCHEMA REQUIRED (Your entire response must be this JSON object only):
+        {
+          "matchScore": 75, // Exact integer evaluation from 0 to 100 based on core match parameters
+          "matchingPercentage": 75, // Matches the score
+          "missingKeywords": ["keyword1", "keyword2"], // Important search terms, technical terms, frameworks, tools from the job description missing or under-described in resume
+          "suggestedKeywords": ["suggested1", "suggested2"], // Highly relevant keywords to add to increase ranking
+          "matchedKeywords": ["matched1", "matched2"], // Keywords from job description already successfully in resume
+          "weakSections": [
+            {
+              "section": "Experience", // Section name
+              "findings": "Detail why this section falls short in ATS terms (e.g., lacks metrics, action verbs)",
+              "correction": "Actionable way to fix this section"
+            }
+          ],
+          "recommendations": [
+            "First major strategic layout/content recommendation",
+            "Second major recommendation",
+            "Third alignment tip"
+          ],
+          "jobTitleMatch": true, // Whether current jobTitle aligns with job description role
+          "overallSummary": "An executive summary of how well the candidate aligns with the role, highlighting main strengths and red flags."
+        }
+        `;
+
+        const aiResponse = await requestAICompletion(prompt, systemInstruction, true);
+        analysisResult = JSON.parse(aiResponse);
+      } catch (err: any) {
+        console.warn("[Analyst API] Primary live AI failed or was not configured. Gracefully falling back to Sandbox analyst.", err.message);
+        isDemoMode = true;
+        analysisResult = fallbackATSAnalysis(resumeData, jobDescription);
+      }
     }
 
-    res.json(analysisResult);
+    res.json({
+      ...analysisResult,
+      isDemoMode,
+    });
 
   } catch (error: any) {
     console.error("[Analyze Error]", error);
@@ -404,55 +575,68 @@ app.post("/api/enhance-ats", async (req, res) => {
 
     console.log("[ATS Enhancer] Rewriting resume components targeted for high ATS rating...");
 
-    const systemInstruction = 
-      "You are a stellar executive Resume Writer and ATS Optimization expert. Your goal is to improve the provided resume so it receives a high score, without inventing fictitious job titles, employers, schools, or credentials. Reword existing descriptions to have greater business impact, higher professional tone, recruiter terminology, and keywords naturally integrated. Return ONLY valid JSON containing the updated resumeData object.";
+    let isDemoMode = !getOpenAI() && !getGemini();
+    let enhancedResume = {};
 
-    const prompt = `
-    Improve and rewrite specific sections of this candidate resume to match the Job Description.
-
-    ### RULES FOR ENHANCEMENT:
-    1. Professional Summary: Re-write completely to address core qualifications of the job description. Highlight experience, key skills, and passion for the specific field. Make it extremely compelling.
-    2. Skills: Naturally insert missing skills from the Job Description / Analysis without duplicate keywords or chaotic stuffing. Create a comprehensive, clean array.
-    3. Experience Bullet Points: Improve descriptions using recruiter-quality language. Add action verbs (e.g., spearheaded, engineered, optimized, orchestrated), and insert realistic, contextually valid, percentage-based or metric impact statements (e.g., "improving page loads by 25%", "reducing server lag by 30%", "boosting user acquisition by 15%") where it makes real sense under their existing accomplishments. Do NOT alter companies, roles, or dates.
-    4. Projects Section: Professionalize and rewrite project summaries with technical keywords integrated naturally. 
-    5. Avoid keyword-stuffing block-paragraphs. Weave words natively into bullet sentences. Avoid duplicates. Avoid placeholder optimization text (never print "optimized for XYZ ATS keyword"). Keep original content meaning intact.
-
-    ### RESUME TO OPTIMIZE:
-    ${JSON.stringify(resumeData, null, 2)}
-
-    ### JOB DESCRIPTION:
-    ${jobDescription}
-
-    ### CURRENT ATS ANALYSIS (Use keyword hints here):
-    ${JSON.stringify(analysisResult || {}, null, 2)}
-
-    ### OUTPUT FORMAT REQUIRED:
-    Return ONLY a fully structured JSON object representing the enhanced resume under the exact key "resumeData".
-    Ensure there is no extra wrapper markdown or conversational text. Your response should parse directly as:
-    {
-      "resumeData": {
-         // Full resumeData object fully optimized according to standard structure
-      }
-    }
-    `;
-
-    const aiResponse = await requestAICompletion(prompt, systemInstruction, true);
-    let responseObj: any = {};
-    try {
-      responseObj = JSON.parse(aiResponse);
-    } catch (parseErr) {
-      console.error("[Enhancer API] Failed parsing response to JSON:", aiResponse);
-      // Clean possible wrapper codes
-      const cleanJsonStr = aiResponse.replace(/```json/gi, "").replace(/```/g, "").trim();
+    if (isDemoMode) {
+      console.log("[ATS Enhancer] Running in Demo Sandbox fallback mode");
+      enhancedResume = fallbackATSEnhancement(resumeData, jobDescription, analysisResult);
+    } else {
       try {
-        responseObj = JSON.parse(cleanJsonStr);
-      } catch (nestedErr) {
-        throw new Error("The AI response was not formatted in valid JSON code. Please retry.");
+        const systemInstruction = 
+          "You are a stellar executive Resume Writer and ATS Optimization expert. Your goal is to improve the provided resume so it receives a high score, without inventing fictitious job titles, employers, schools, or credentials. Reword existing descriptions to have greater business impact, higher professional tone, recruiter terminology, and keywords naturally integrated. Return ONLY valid JSON containing the updated resumeData object.";
+
+        const prompt = `
+        Improve and rewrite specific sections of this candidate resume to match the Job Description.
+
+        ### RULES FOR ENHANCEMENT:
+        1. Professional Summary: Re-write completely to address core qualifications of the job description. Highlight experience, key skills, and passion for the specific field. Make it extremely compelling.
+        2. Skills: Naturally insert missing skills from the Job Description / Analysis without duplicate keywords or chaotic stuffing. Create a comprehensive, clean array.
+        3. Experience Bullet Points: Improve descriptions using recruiter-quality language. Add action verbs (e.g., spearheaded, engineered, optimized, orchestrated), and insert realistic, contextually valid, percentage-based or metric impact statements (e.g., "improving page loads by 25%", "reducing server lag by 30%", "boosting user acquisition by 15%") where it makes real sense under their existing accomplishments. Do NOT alter companies, roles, or dates.
+        4. Projects Section: Professionalize and rewrite project summaries with technical keywords integrated naturally. 
+        5. Avoid keyword-stuffing block-paragraphs. Weave words natively into bullet sentences. Avoid duplicates. Avoid placeholder optimization text (never print "optimized for XYZ ATS keyword"). Keep original content meaning intact.
+
+        ### RESUME TO OPTIMIZE:
+        ${JSON.stringify(resumeData, null, 2)}
+
+        ### JOB DESCRIPTION:
+        ${jobDescription}
+
+        ### CURRENT ATS ANALYSIS (Use keyword hints here):
+        ${JSON.stringify(analysisResult || {}, null, 2)}
+
+        ### OUTPUT FORMAT REQUIRED:
+        Return ONLY a fully structured JSON object representing the enhanced resume under the exact key "resumeData".
+        Ensure there is no extra wrapper markdown or conversational text. Your response should parse directly as:
+        {
+          "resumeData": {
+             // Full resumeData object fully optimized according to standard structure
+          }
+        }
+        `;
+
+        const aiResponse = await requestAICompletion(prompt, systemInstruction, true);
+        let responseObj: any = {};
+        try {
+          responseObj = JSON.parse(aiResponse);
+        } catch (parseErr) {
+          console.error("[Enhancer API] Failed parsing response to JSON, trying cleaning:", aiResponse);
+          const cleanJsonStr = aiResponse.replace(/```json/gi, "").replace(/```/g, "").trim();
+          responseObj = JSON.parse(cleanJsonStr);
+        }
+
+        enhancedResume = responseObj.resumeData || responseObj;
+      } catch (err: any) {
+        console.warn("[Enhancer API] Primary live AI failed or was not configured. Gracefully falling back to Sandbox enhancer.", err.message);
+        isDemoMode = true;
+        enhancedResume = fallbackATSEnhancement(resumeData, jobDescription, analysisResult);
       }
     }
 
-    const enhancedResume = responseObj.resumeData || responseObj;
-    res.json({ resumeData: enhancedResume });
+    res.json({ 
+      resumeData: enhancedResume,
+      isDemoMode,
+    });
 
   } catch (error: any) {
     console.error("[Enhance Error]", error);

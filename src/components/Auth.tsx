@@ -274,12 +274,12 @@ export function Auth({ onAuthSuccess }: AuthProps) {
           {/* Header titles */}
           <div className="space-y-1.5 text-center mb-6">
             <h1 className="text-2xl font-black font-display tracking-tight bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent">
-              {isSignUp ? "Generate Secure Account" : "Access Candidate Dashboard"}
+              {isSignUp ? "Create Secure Account" : "Access Candidate Dashboard"}
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 max-w-[280px] mx-auto leading-relaxed">
               {isSignUp 
                 ? "Block fake emails and establish hard credentials to secure resume iterations." 
-                : "Manage previous scans and run alignment scans against corporate job descriptions."
+                : "Track past resume analyses and compare resumes with target job requirements."
               }
             </p>
           </div>
@@ -446,7 +446,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
               ) : (
                 <ShieldCheck className="w-4 h-4" />
               )}
-              {isSignUp ? "Generate Account" : "Sign in"}
+              {isSignUp ? "Create Account" : "Sign in"}
             </button>
           </form>
 

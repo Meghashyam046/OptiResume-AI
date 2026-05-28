@@ -93,25 +93,69 @@ const upload = multer({
 let openaiClient: OpenAI | null = null;
 let googleGenAIClient: GoogleGenAI | null = null;
 
+function isValidApiKey(key: string | undefined): boolean {
+  if (!key) return false;
+  let clean = key.trim();
+  // Remove wrapping quotes if present
+  if ((clean.startsWith('"') && clean.endsWith('"')) || (clean.startsWith("'") && clean.endsWith("'"))) {
+    clean = clean.slice(1, -1).trim();
+  }
+  if (!clean) return false;
+  
+  // Strip non-alphanumeric characters to thoroughly check against placeholders
+  const superClean = clean.toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (
+    superClean === "undefined" ||
+    superClean === "null" ||
+    superClean === "" ||
+    superClean.includes("placeholder") ||
+    superClean.includes("myopenaiapi") ||
+    superClean.includes("mygeminiapi") ||
+    superClean.includes("youropenaiapi") ||
+    superClean.includes("yourgeminiapi") ||
+    superClean.includes("yourapikey") ||
+    superClean.includes("yourkey") ||
+    superClean.includes("enterkey") ||
+    superClean.includes("enterapi") ||
+    superClean.includes("yourcredentials") ||
+    superClean.includes("dummykey") ||
+    superClean.includes("testkey")
+  ) {
+    return false;
+  }
+  
+  // Real active keys should be at least 15 characters long
+  if (clean.length < 15) return false;
+  return true;
+}
+
 function getOpenAI(): OpenAI | null {
   const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey || apiKey === "MY_OPENAI_API_KEY") {
+  if (!isValidApiKey(apiKey)) {
     return null;
   }
+  let clean = apiKey!.trim();
+  if ((clean.startsWith('"') && clean.endsWith('"')) || (clean.startsWith("'") && clean.endsWith("'"))) {
+    clean = clean.slice(1, -1).trim();
+  }
   if (!openaiClient) {
-    openaiClient = new OpenAI({ apiKey });
+    openaiClient = new OpenAI({ apiKey: clean });
   }
   return openaiClient;
 }
 
 function getGemini(): GoogleGenAI | null {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
+  if (!isValidApiKey(apiKey)) {
     return null;
+  }
+  let clean = apiKey!.trim();
+  if ((clean.startsWith('"') && clean.endsWith('"')) || (clean.startsWith("'") && clean.endsWith("'"))) {
+    clean = clean.slice(1, -1).trim();
   }
   if (!googleGenAIClient) {
     googleGenAIClient = new GoogleGenAI({
-      apiKey,
+      apiKey: clean,
       httpOptions: {
         headers: {
           "User-Agent": "aistudio-build",
@@ -150,20 +194,24 @@ async function requestAICompletion(prompt: string, systemInstruction?: string, j
   // Fallback to Gemini API (automatically configured on the platform)
   const gemini = getGemini();
   if (gemini) {
-    console.log("[AI Service] Querying Gemini API (gemini-3.5-flash)...");
-    const response = await gemini.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: prompt,
-      config: {
-        systemInstruction: systemInstruction,
-        temperature: 0.2,
-        responseMimeType: jsonMode ? "application/json" : "text/plain",
-      },
-    });
-    return response.text?.trim() || "";
+    try {
+      console.log("[AI Service] Querying Gemini API (gemini-3.5-flash)...");
+      const response = await gemini.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: prompt,
+        config: {
+          systemInstruction: systemInstruction,
+          temperature: 0.2,
+          responseMimeType: jsonMode ? "application/json" : "text/plain",
+        },
+      });
+      return response.text?.trim() || "";
+    } catch (err: any) {
+      console.error("[AI Service] Gemini query failed:", err.message);
+    }
   }
 
-  throw new Error("No AI providers (OpenAI or Gemini API Keys) are configured on the backend server.");
+  throw new Error("No AI providers (OpenAI or Gemini API Keys) are configured on the backend server, or the configured providers failed to execute.");
 }
 
 // Sandbox high-fidelity offline helpers
@@ -458,7 +506,12 @@ app.post("/api/parse-resume", upload.single("resume"), async (req, res) => {
         `;
 
         const aiResponse = await requestAICompletion(prompt, systemInstruction, true);
-        resumeData = JSON.parse(aiResponse);
+        let clean = aiResponse
+  .replace(/```json/gi, "")
+  .replace(/```/g, "")
+  .trim();
+
+resumeData = JSON.parse(clean);
       } catch (err: any) {
         console.warn("[Parser API] Primary live AI failed or was not configured. Gracefully falling back to Sandbox parser.", err.message);
         isDemoMode = true;
@@ -616,15 +669,15 @@ app.post("/api/enhance-ats", async (req, res) => {
         `;
 
         const aiResponse = await requestAICompletion(prompt, systemInstruction, true);
-        let responseObj: any = {};
-        try {
-          responseObj = JSON.parse(aiResponse);
-        } catch (parseErr) {
-          console.error("[Enhancer API] Failed parsing response to JSON, trying cleaning:", aiResponse);
-          const cleanJsonStr = aiResponse.replace(/```json/gi, "").replace(/```/g, "").trim();
-          responseObj = JSON.parse(cleanJsonStr);
-        }
 
+        console.log("RAW AI RESPONSE:", aiResponse); // debugging
+
+        const clean = aiResponse
+          .replace(/```json/gi, "")
+          .replace(/```/g, "")
+          .trim();
+
+        const responseObj = JSON.parse(clean);
         enhancedResume = responseObj.resumeData || responseObj;
       } catch (err: any) {
         console.warn("[Enhancer API] Primary live AI failed or was not configured. Gracefully falling back to Sandbox enhancer.", err.message);

@@ -15,13 +15,7 @@ export const A4ResumePreview: React.FC<A4ResumePreviewProps> = ({
   const { personalInfo, summary, skills = [], experience = [], projects = [], education = [], certifications = [] } = resumeData;
 
   const handlePrint = () => {
-    const printContent = printRef.current?.innerHTML;
-    const originalContent = document.body.innerHTML;
-
-    if (printContent) {
-      // Elegant standard print trigger
-      window.print();
-    }
+    window.print();
   };
 
   // Styles map based on templates

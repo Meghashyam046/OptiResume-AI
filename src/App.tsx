@@ -5,6 +5,7 @@ import { AnalysisDisplay } from "./components/AnalysisDisplay";
 import { A4ResumePreview } from "./components/A4ResumePreview";
 import { DbService, supabase } from "./supabase";
 import { Auth } from "./components/Auth";
+import { GoogleSelectPopup } from "./components/GoogleSelectPopup";
 import { 
   Upload, 
   Briefcase,
@@ -193,7 +194,7 @@ export default function App() {
 
   // Handle popup window handshake and closing
   useEffect(() => {
-    if (typeof window !== "undefined" && window.opener) {
+    if (typeof window !== "undefined" && window.opener && window.location.pathname !== "/auth/google-select") {
       const handlePopupAuthentication = async () => {
         if (supabase) {
           try {
@@ -494,8 +495,12 @@ export default function App() {
     }
   };
 
+  if (typeof window !== "undefined" && window.location.pathname === "/auth/google-select") {
+    return <GoogleSelectPopup />;
+  }
+
   // Streamlined screen for popup window callback context to handle the parent postMessage and shut down smoothly
-  if (typeof window !== "undefined" && window.opener) {
+  if (typeof window !== "undefined" && window.opener && window.location.pathname !== "/auth/google-select") {
     return (
       <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-center select-none">
         <div className="bg-slate-950/60 p-8 rounded-3xl border border-slate-800/80 max-w-md shadow-2xl flex flex-col items-center">

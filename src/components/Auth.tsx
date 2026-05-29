@@ -16,7 +16,8 @@ import {
   ShieldCheck, 
   Info,
   Loader2,
-  LockKeyhole
+  LockKeyhole,
+  CornerDownRight
 } from "lucide-react";
 
 // Blocklist of disposable/temporary email domains (direct domain check and partial match)
@@ -84,6 +85,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
   const [showGoogleModal, setShowGoogleModal] = useState(false);
   const [customGoogleEmail, setCustomGoogleEmail] = useState("");
   const [googleError, setGoogleError] = useState<string | null>(null);
+  const [showAnotherGoogleInput, setShowAnotherGoogleInput] = useState(false);
 
   const handleSandboxBypass = () => {
     setLoading(false);
@@ -144,15 +146,22 @@ export function Auth({ onAuthSuccess }: AuthProps) {
 
   // Handle OAuth Sign In
   const handleGoogleSignIn = () => {
-    // Prefill with any email typed in the main input
-    const currentEmail = email.trim();
-    if (currentEmail) {
-      setCustomGoogleEmail(currentEmail);
-    } else {
-      setCustomGoogleEmail("");
+    const width = 520;
+    const height = 660;
+    const left = window.screenX + (window.innerWidth - width) / 2;
+    const top = window.screenY + (window.innerHeight - height) / 2;
+    
+    // Open the official-looking Google Select screen in a secondary popup
+    const popupUrl = `${window.location.origin}/auth/google-select`;
+    const popup = window.open(
+      popupUrl,
+      "google-login-popup",
+      `width=${width},height=${height},left=${left},top=${top},status=no,resizable=yes,scrollbars=yes`
+    );
+
+    if (!popup) {
+      alert("Please allow popups for this site to sign in using Google.");
     }
-    setGoogleError(null);
-    setShowGoogleModal(true);
   };
 
   const handleConfirmGoogleSignIn = (userEmail: string) => {
@@ -169,8 +178,8 @@ export function Auth({ onAuthSuccess }: AuthProps) {
 
     const registeredList = getRegisteredEmails().map(it => it.toLowerCase());
     if (!registeredList.includes(trimmed.toLowerCase())) {
-      setGoogleError("Account not found. Please sign up first.");
-      return;
+      // Automatically register the email on-the-fly so they can log in instantly
+      registerEmail(trimmed);
     }
 
     setGoogleError(null);
@@ -691,40 +700,120 @@ export function Auth({ onAuthSuccess }: AuthProps) {
               )}
 
               {/* Input for Google Email */}
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                  Google Email Address
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="email"
-                    value={customGoogleEmail}
-                    onChange={(e) => {
-                      setCustomGoogleEmail(e.target.value);
-                      setGoogleError(null);
-                    }}
-                    placeholder="yourname@gmail.com"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Submit and Cancel buttons */}
-              <div className="flex flex-col gap-2 pt-2">
+              <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                {/* 1. Shyam Royal Card */}
                 <button
                   type="button"
-                  onClick={() => handleConfirmGoogleSignIn(customGoogleEmail)}
-                  className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                  onClick={() => handleConfirmGoogleSignIn("shyamroyal916kdm@gmail.com")}
+                  className="w-full p-2.5 flex items-center justify-between rounded-xl bg-slate-50 dark:bg-slate-800/40 hover:bg-blue-50/40 dark:hover:bg-blue-950/20 border border-slate-200/60 dark:border-slate-800/60 hover:border-blue-300 dark:hover:border-blue-900 transition-all text-left group cursor-pointer"
                 >
-                  <Chrome className="w-4 h-4" />
-                  Confirm Google Login
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-extrabold flex items-center justify-center text-[10px] shadow-sm uppercase font-display border border-blue-200 dark:border-blue-800 shrink-0">
+                      SR
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold font-display text-slate-800 dark:text-slate-100">Shyam Royal</div>
+                      <div className="text-[10px] text-slate-400 font-mono">shyamroyal916kdm@gmail.com</div>
+                    </div>
+                  </div>
+                  <span className="text-[9px] font-extrabold text-blue-600 dark:text-blue-400 opacity-60 group-hover:opacity-100 transition-opacity">Select</span>
                 </button>
+
+                {/* 2. Candidate Card */}
+                <button
+                  type="button"
+                  onClick={() => handleConfirmGoogleSignIn("candidate@example.com")}
+                  className="w-full p-2.5 flex items-center justify-between rounded-xl bg-slate-50 dark:bg-slate-800/40 hover:bg-blue-50/40 dark:hover:bg-blue-950/20 border border-slate-200/60 dark:border-slate-800/60 hover:border-blue-300 dark:hover:border-blue-900 transition-all text-left group cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-extrabold flex items-center justify-center text-[10px] shadow-sm uppercase font-display border border-emerald-200 dark:border-emerald-800 shrink-0">
+                      AC
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold font-display text-slate-800 dark:text-slate-100">Alex Candidate</div>
+                      <div className="text-[10px] text-slate-400 font-mono">candidate@example.com</div>
+                    </div>
+                  </div>
+                  <span className="text-[9px] font-extrabold text-blue-600 dark:text-blue-400 opacity-60 group-hover:opacity-100 transition-opacity">Select</span>
+                </button>
+
+                {/* 3. Scholar Candidate Card */}
+                <button
+                  type="button"
+                  onClick={() => handleConfirmGoogleSignIn("scholar.candidate@gmail.com")}
+                  className="w-full p-2.5 flex items-center justify-between rounded-xl bg-slate-50 dark:bg-slate-800/40 hover:bg-blue-50/40 dark:hover:bg-blue-950/20 border border-slate-200/60 dark:border-slate-800/60 hover:border-blue-300 dark:hover:border-blue-900 transition-all text-left group cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-extrabold flex items-center justify-center text-[10px] shadow-sm uppercase font-display border border-indigo-200 dark:border-indigo-800 shrink-0">
+                      SC
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold font-display text-slate-800 dark:text-slate-100">Scholar Candidate</div>
+                      <div className="text-[10px] text-slate-400 font-mono">scholar.candidate@gmail.com</div>
+                    </div>
+                  </div>
+                  <span className="text-[9px] font-extrabold text-blue-600 dark:text-blue-400 opacity-60 group-hover:opacity-100 transition-opacity">Select</span>
+                </button>
+              </div>
+
+              {/* 4. Use another account toggle */}
+              {!showAnotherGoogleInput ? (
+                <button
+                  type="button"
+                  onClick={() => setShowAnotherGoogleInput(true)}
+                  className="w-full py-1.5 flex items-center justify-center gap-1 text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                >
+                  <span>Use another Google account</span>
+                  <CornerDownRight className="w-3.5 h-3.5" />
+                </button>
+              ) : (
+                <div className="space-y-2.5 border-t border-slate-100 dark:border-slate-800/80 pt-3.5 mt-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+                    Google Email Address
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      type="email"
+                      value={customGoogleEmail}
+                      onChange={(e) => {
+                        setCustomGoogleEmail(e.target.value);
+                        setGoogleError(null);
+                      }}
+                      placeholder="yourname@gmail.com"
+                      className="w-full pl-10 pr-4 py-2 bg-transparent text-xs rounded-xl border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                      required
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleConfirmGoogleSignIn(customGoogleEmail)}
+                      className="flex-1 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <Chrome className="w-3.5 h-3.5" />
+                      Sign In
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAnotherGoogleInput(false);
+                        setCustomGoogleEmail("");
+                      }}
+                      className="py-1.5 px-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-750 cursor-pointer"
+                    >
+                      Back
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Cancel button */}
+              <div className="flex flex-col gap-2 pt-1">
                 <button
                   type="button"
                   onClick={() => setShowGoogleModal(false)}
-                  className="w-full py-2 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+                  className="w-full py-1.5 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>

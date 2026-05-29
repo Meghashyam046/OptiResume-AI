@@ -1,66 +1,61 @@
 import express from "express";
 import path from "path";
 import multer from "multer";
-import { PDFParse } from "pdf-parse";
 import { createRequire } from "module";
 
 async function parsePdfBuffer(buffer: Buffer): Promise<string> {
-  // 1. Try using the direct PDFParse class from mehmet-kozan's pdf-parse package (v2+)
-  try {
-    const parser = new PDFParse({ data: new Uint8Array(buffer) });
-    const result = await parser.getText();
-    if (result && typeof result.text === "string") {
-      console.log(`[Parser] Successfully parsed PDF using PDFParse class. Extracted ${result.text.length} characters.`);
-      return result.text;
-    }
-  } catch (err) {
-    console.warn("[Parser] PDFParse class direct instantiation failed:", err);
-  }
-
-  // 2. Try ESM dynamic import fallback
-  try {
-    const dynamicModule = (await import("pdf-parse")) as any;
-    const ParserClass = dynamicModule.PDFParse || dynamicModule.default?.PDFParse || dynamicModule.default;
-    if (typeof ParserClass === "function") {
-      try {
-        const parserInstance = new ParserClass({ data: new Uint8Array(buffer) });
-        const result = await parserInstance.getText();
-        if (result && typeof result.text === "string") {
-          return result.text;
-        }
-      } catch (ctorErr) {
-        // Fallback for older functional pdf-parse versions just in case
-        const result = await ParserClass(buffer);
-        if (result && typeof result.text === "string") {
-          return result.text;
-        }
-      }
-    }
-  } catch (err) {
-    console.warn("[Parser] Dynamic import parsing failed:", err);
-  }
-
-  // 3. Try CommonJS createRequire fallback
+  // 1. Try standard CommonJS required pdf-parse as a function loader (most standard way for pdf-parse)
   try {
     const requireCustom = createRequire(import.meta.url);
-    const requiredModule = requireCustom("pdf-parse");
-    const ParserClass = requiredModule.PDFParse || requiredModule.default?.PDFParse || requiredModule;
+    const pdfParser = requireCustom("pdf-parse");
+    // Standard pdf-parse exports a function: module.exports = pdfParse;
+    const parsed = await pdfParser(buffer);
+    if (parsed && typeof parsed.text === "string") {
+      console.log(`[Parser] Successfully parsed PDF using standard pdf-parse. Extracted ${parsed.text.length} characters.`);
+      return parsed.text;
+    }
+  } catch (err: any) {
+    console.warn("[Parser] Standard functional require pdf-parse failed, trying fallback classes:", err.message || err);
+  }
+
+  // 2. Try classes or sub-exports that might exist in newer variations (e.g. PDFParse)
+  try {
+    const requireCustom = createRequire(import.meta.url);
+    const pdfModule = requireCustom("pdf-parse");
+    const ParserClass = pdfModule.PDFParse || pdfModule.default?.PDFParse;
     if (typeof ParserClass === "function") {
-      try {
-        const parserInstance = new ParserClass({ data: new Uint8Array(buffer) });
-        const result = await parserInstance.getText();
-        if (result && typeof result.text === "string") {
-          return result.text;
-        }
-      } catch (ctorErr) {
-        const result = await ParserClass(buffer);
-        if (result && typeof result.text === "string") {
-          return result.text;
-        }
+      const parserInstance = new ParserClass({ data: new Uint8Array(buffer) });
+      const result = await parserInstance.getText();
+      if (result && typeof result.text === "string") {
+        console.log(`[Parser] Successfully parsed using PDFParse class constructor.`);
+        return result.text;
       }
     }
-  } catch (err) {
-    console.error("[Parser] CommonJS require parsing failed:", err);
+  } catch (err: any) {
+    console.warn("[Parser] PDFParse class instantiation fallback failed:", err.message || err);
+  }
+
+  // 3. Try Dynamic ESM import fallback
+  try {
+    const dynamicModule = (await import("pdf-parse")) as any;
+    const pdfFunc = dynamicModule.default || dynamicModule;
+    if (typeof pdfFunc === "function") {
+      const parsed = await pdfFunc(buffer);
+      if (parsed && typeof parsed.text === "string") {
+        console.log(`[Parser] Successfully parsed using dynamic ESM import.`);
+        return parsed.text;
+      }
+    }
+    const ParserClass = dynamicModule.PDFParse || dynamicModule.default?.PDFParse;
+    if (typeof ParserClass === "function") {
+      const parserInstance = new ParserClass({ data: new Uint8Array(buffer) });
+      const result = await parserInstance.getText();
+      if (result && typeof result.text === "string") {
+        return result.text;
+      }
+    }
+  } catch (err: any) {
+    console.warn("[Parser] Dynamic ESM load failed:", err.message || err);
   }
 
   throw new Error("Unable to resolve a valid PDF parsing function or class on this platform.");

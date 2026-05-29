@@ -315,11 +315,26 @@ export default function App() {
         body: formData,
       });
 
-      const data = await response.json();
+      const contentType = response.headers.get("content-type");
       if (!response.ok) {
-        throw new Error(data.error || "Failed to analyze resume file structure.");
+        let errorMessage = "Failed to analyze resume file structure.";
+        if (contentType && contentType.includes("application/json")) {
+          const errData = await response.json();
+          errorMessage = errData.error || errorMessage;
+        } else {
+          const rawText = await response.text();
+          const bodyMatch = rawText.match(/<pre>([\s\S]*?)<\/pre>/i) || rawText.match(/<h1>([\s\S]*?)<\/h1>/i);
+          errorMessage = bodyMatch ? bodyMatch[1].trim() : `Server error (${response.status}). Please check API connectivity.`;
+        }
+        throw new Error(errorMessage);
       }
 
+      if (!contentType || !contentType.includes("application/json")) {
+        const rawText = await response.text();
+        throw new Error(`Server returned non-JSON response: ${rawText.slice(0, 100)}`);
+      }
+
+      const data = await response.json();
       setResumeData(data.resumeData);
       if (data.isDemoMode !== undefined) {
         setIsDemoMode(!!data.isDemoMode);
@@ -351,11 +366,26 @@ export default function App() {
         body: JSON.stringify({ resumeData, jobDescription }),
       });
 
-      const data = await response.json();
+      const contentType = response.headers.get("content-type");
       if (!response.ok) {
-        throw new Error(data.error || "ATS Scanning interface failed.");
+        let errorMessage = "ATS Scanning interface failed.";
+        if (contentType && contentType.includes("application/json")) {
+          const errData = await response.json();
+          errorMessage = errData.error || errorMessage;
+        } else {
+          const rawText = await response.text();
+          const bodyMatch = rawText.match(/<pre>([\s\S]*?)<\/pre>/i) || rawText.match(/<h1>([\s\S]*?)<\/h1>/i);
+          errorMessage = bodyMatch ? bodyMatch[1].trim() : `Server error (${response.status}). Please check ATS module.`;
+        }
+        throw new Error(errorMessage);
       }
 
+      if (!contentType || !contentType.includes("application/json")) {
+        const rawText = await response.text();
+        throw new Error(`Server returned non-JSON response from analysis: ${rawText.slice(0, 100)}`);
+      }
+
+      const data = await response.json();
       setAnalysisResult(data);
       if (data.isDemoMode !== undefined) {
         setIsDemoMode(!!data.isDemoMode);
@@ -394,11 +424,26 @@ export default function App() {
         }),
       });
 
-      const data = await response.json();
+      const contentType = response.headers.get("content-type");
       if (!response.ok) {
-        throw new Error(data.error || "AI Resume enhancement model error.");
+        let errorMessage = "AI Resume enhancement model error.";
+        if (contentType && contentType.includes("application/json")) {
+          const errData = await response.json();
+          errorMessage = errData.error || errorMessage;
+        } else {
+          const rawText = await response.text();
+          const bodyMatch = rawText.match(/<pre>([\s\S]*?)<\/pre>/i) || rawText.match(/<h1>([\s\S]*?)<\/h1>/i);
+          errorMessage = bodyMatch ? bodyMatch[1].trim() : `Server error (${response.status}). Please check Enhance module.`;
+        }
+        throw new Error(errorMessage);
       }
 
+      if (!contentType || !contentType.includes("application/json")) {
+        const rawText = await response.text();
+        throw new Error(`Server returned non-JSON response from enhancer: ${rawText.slice(0, 100)}`);
+      }
+
+      const data = await response.json();
       setResumeData(data.resumeData);
       if (data.isDemoMode !== undefined) {
         setIsDemoMode(!!data.isDemoMode);
@@ -410,8 +455,10 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resumeData: data.resumeData, jobDescription }),
       });
-      const updatedAnalysis = await updatedResponse.json();
-      if (updatedResponse.ok) {
+
+      const updatedContentType = updatedResponse.headers.get("content-type");
+      if (updatedResponse.ok && updatedContentType && updatedContentType.includes("application/json")) {
+        const updatedAnalysis = await updatedResponse.json();
         setAnalysisResult(updatedAnalysis);
         // Persist history update
         await DbService.saveHistoryItem(

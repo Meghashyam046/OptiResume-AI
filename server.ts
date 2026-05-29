@@ -3,10 +3,14 @@ import path from "path";
 import multer from "multer";
 import { createRequire } from "module";
 
+// Safe dynamic require resolution for both ESM (ts-node/tsx dev) and CJS (bundled/esbuild production) runtimes
+const requireCustom = typeof require !== "undefined"
+  ? require
+  : createRequire(import.meta.url);
+
 async function parsePdfBuffer(buffer: Buffer): Promise<string> {
   // 1. Try standard CommonJS required pdf-parse as a function loader (most standard way for pdf-parse)
   try {
-    const requireCustom = createRequire(import.meta.url);
     const pdfParser = requireCustom("pdf-parse");
     // Standard pdf-parse exports a function: module.exports = pdfParse;
     const parsed = await pdfParser(buffer);
@@ -20,7 +24,6 @@ async function parsePdfBuffer(buffer: Buffer): Promise<string> {
 
   // 2. Try classes or sub-exports that might exist in newer variations (e.g. PDFParse)
   try {
-    const requireCustom = createRequire(import.meta.url);
     const pdfModule = requireCustom("pdf-parse");
     const ParserClass = pdfModule.PDFParse || pdfModule.default?.PDFParse;
     if (typeof ParserClass === "function") {

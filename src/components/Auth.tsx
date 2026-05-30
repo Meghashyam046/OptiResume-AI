@@ -718,42 +718,6 @@ export function Auth({ onAuthSuccess }: AuthProps) {
                   </div>
                   <span className="text-[9px] font-extrabold text-blue-600 dark:text-blue-400 opacity-60 group-hover:opacity-100 transition-opacity">Select</span>
                 </button>
-
-                {/* 2. Candidate Card */}
-                <button
-                  type="button"
-                  onClick={() => handleConfirmGoogleSignIn("candidate@example.com")}
-                  className="w-full p-2.5 flex items-center justify-between rounded-xl bg-slate-50 dark:bg-slate-800/40 hover:bg-blue-50/40 dark:hover:bg-blue-950/20 border border-slate-200/60 dark:border-slate-800/60 hover:border-blue-300 dark:hover:border-blue-900 transition-all text-left group cursor-pointer"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-extrabold flex items-center justify-center text-[10px] shadow-sm uppercase font-display border border-emerald-200 dark:border-emerald-800 shrink-0">
-                      AC
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold font-display text-slate-800 dark:text-slate-100">Alex Candidate</div>
-                      <div className="text-[10px] text-slate-400 font-mono">candidate@example.com</div>
-                    </div>
-                  </div>
-                  <span className="text-[9px] font-extrabold text-blue-600 dark:text-blue-400 opacity-60 group-hover:opacity-100 transition-opacity">Select</span>
-                </button>
-
-                {/* 3. Scholar Candidate Card */}
-                <button
-                  type="button"
-                  onClick={() => handleConfirmGoogleSignIn("scholar.candidate@gmail.com")}
-                  className="w-full p-2.5 flex items-center justify-between rounded-xl bg-slate-50 dark:bg-slate-800/40 hover:bg-blue-50/40 dark:hover:bg-blue-950/20 border border-slate-200/60 dark:border-slate-800/60 hover:border-blue-300 dark:hover:border-blue-900 transition-all text-left group cursor-pointer"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-extrabold flex items-center justify-center text-[10px] shadow-sm uppercase font-display border border-indigo-200 dark:border-indigo-800 shrink-0">
-                      SC
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold font-display text-slate-800 dark:text-slate-100">Scholar Candidate</div>
-                      <div className="text-[10px] text-slate-400 font-mono">scholar.candidate@gmail.com</div>
-                    </div>
-                  </div>
-                  <span className="text-[9px] font-extrabold text-blue-600 dark:text-blue-400 opacity-60 group-hover:opacity-100 transition-opacity">Select</span>
-                </button>
               </div>
 
               {/* 4. Use another account toggle */}

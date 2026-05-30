@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-const API_URL = "https://optiresume-ai.onrender.com";
+const API_URL = const API_URL = import.meta.env.VITE_API_URL;;
 import { ResumeData, AnalysisResult, AIHistoryItem } from "./types";
 import { ResumeForm } from "./components/ResumeForm";
 import { AnalysisDisplay } from "./components/AnalysisDisplay";

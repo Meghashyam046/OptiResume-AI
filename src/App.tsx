@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+const API_URL = import.meta.env.VITE_API_URL;
 import { ResumeData, AnalysisResult, AIHistoryItem } from "./types";
 import { ResumeForm } from "./components/ResumeForm";
 import { AnalysisDisplay } from "./components/AnalysisDisplay";
@@ -311,11 +312,10 @@ export default function App() {
     formData.append("resume", file);
 
     try {
-      const response = await fetch("/api/parse-resume", {
-        method: "POST",
-        body: formData,
-      });
-
+      const response = await fetch(`${API_URL}/api/parse-resume`, {
+  method: "POST",
+  body: formData,
+});
       const contentType = response.headers.get("content-type");
       if (!response.ok) {
         let errorMessage = "Failed to analyze resume file structure.";
@@ -361,7 +361,7 @@ export default function App() {
     setAnalysisError(null);
 
     try {
-      const response = await fetch("/api/analyze-ats", {
+      const response = await fetch(`${API_URL}/api/analyze-ats`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resumeData, jobDescription }),
@@ -415,7 +415,7 @@ export default function App() {
 
     setEnhanceLoading(true);
     try {
-      const response = await fetch("/api/enhance-ats", {
+      const response = await fetch(`${API_URL}/api/enhance-ats`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
@@ -451,11 +451,14 @@ export default function App() {
       }
       
       // Update our ATS scores after the integration
-      const updatedResponse = await fetch("/api/analyze-ats", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ resumeData: data.resumeData, jobDescription }),
-      });
+     const updatedResponse = await fetch(`${API_URL}/api/analyze-ats`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    resumeData: data.resumeData,
+    jobDescription,
+  }),
+});
 
       const updatedContentType = updatedResponse.headers.get("content-type");
       if (updatedResponse.ok && updatedContentType && updatedContentType.includes("application/json")) {

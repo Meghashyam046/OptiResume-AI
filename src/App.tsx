@@ -181,7 +181,7 @@ export default function App() {
     // Check API status & mode on mount
     const checkApiStatus = async () => {
       try {
-        const res = await fetch("/api/status");
+        const res = await fetch(`${API_URL}/api/status`);
         if (res.ok) {
           const data = await res.json();
           setIsDemoMode(!!data.isDemoMode);

@@ -79,6 +79,12 @@ const PORT = 3000;
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
+// Diagnostic Request Logger
+app.use((req, res, next) => {
+  console.log(`[Request] ${req.method} ${req.url} - Content-Type: ${req.headers["content-type"] || "none"}`);
+  next();
+});
+
 // Setup multer in-memory storage for resume document uploads
 const storage = multer.memoryStorage();
 const upload = multer({
@@ -369,7 +375,7 @@ function fallbackATSEnhancement(resumeData: any, jobDescription: string, analysi
 // API Routes
 
 // Health check and provider status
-app.get("/api/status", (req, res) => {
+app.get(["/api/status", "/api/status/"], (req, res) => {
   const hasOpenAI = !!getOpenAI();
   res.json({
     hasOpenAI,
@@ -380,7 +386,7 @@ app.get("/api/status", (req, res) => {
 });
 
 // 1. Upload & Parse document
-app.post("/api/parse-resume", upload.single("resume"), async (req, res) => {
+app.post(["/api/parse-resume", "/api/parse-resume/"], upload.single("resume"), async (req, res) => {
   try {
     if (!req.file) {
       res.status(400).json({ error: "No file was uploaded." });
@@ -503,7 +509,7 @@ app.post("/api/parse-resume", upload.single("resume"), async (req, res) => {
 });
 
 // 2. Perform ATS Score and Complete Keyword Match Analysis
-app.post("/api/analyze-ats", async (req, res) => {
+app.post(["/api/analyze-ats", "/api/analyze-ats/"], async (req, res) => {
   try {
     const { resumeData, jobDescription } = req.body;
 
@@ -582,7 +588,7 @@ app.post("/api/analyze-ats", async (req, res) => {
 });
 
 // 3. Enhance with AI (Summary rewrite, naturally append missing skills, recruiter-quality experience statements, percentage impact)
-app.post("/api/enhance-ats", async (req, res) => {
+app.post(["/api/enhance-ats", "/api/enhance-ats/"], async (req, res) => {
   try {
     const { resumeData, jobDescription, analysisResult } = req.body;
 

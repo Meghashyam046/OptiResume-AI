@@ -1,8 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import { ResumeData, AnalysisResult, AIHistoryItem } from "./types";
 
-const supabaseUrl = "https://kekgjepusxamxndonvzh.supabase.co"
-const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtla2dqZXB1c3hhbXhuZG9udnpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5MjM1MzUsImV4cCI6MjA5NTQ5OTUzNX0.tjntQe4FpMovnFHwyANyeLYcg1XqZ8e62UlIvblQTTA"
+const supabaseUrl =  import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 export const supabase = createClient(
   supabaseUrl,
   supabaseAnonKey
